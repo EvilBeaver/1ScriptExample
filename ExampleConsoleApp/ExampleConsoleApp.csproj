@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="OneScript" Version="1.8.3" />
+      <PackageReference Include="OneScript.DebugServices" Version="1.8.3" />
       <PackageReference Include="OneScript.StandardLibrary" Version="1.8.3" />
     </ItemGroup>
 

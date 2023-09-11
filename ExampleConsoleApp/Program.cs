@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using ExampleConsoleApp;
+using OneScript.DebugServices;
 using ScriptEngine.HostedScript;
 using ScriptEngine.Machine;
 using ScriptEngine.Machine.Contexts;
@@ -43,8 +44,29 @@ var image = engine.GetCompilerService().Compile(source);
 // Чтобы образ стал исполнимым его надо загрузить (прочитать из образа все константы и связать с системой типов)
 var loaded = engine.EngineInstance.LoadModuleImage(image);
 
+// службы отладки
+if (args.Length > 0 && args[0] == "--debug")
+{
+    // определение порта лежит на авторе хост-приложения
+    // здесь для примера мы просто прибьем его гвоздями
+    var debugPort = 8219; 
+    var tcpDebugServer = new BinaryTcpDebugServer(debugPort);
+                    
+    engine.DebugController = tcpDebugServer.CreateDebugController();
+}
+
 // теперь инициализируем движок и можно будет им пользоваться
 engine.Initialize();
+
+// начинаем прослушивание порта отладки. С этого момента к нам могут пытаться подключаться клиенты отладки
+engine.DebugController?.Init();
+
+// далее, поток системы, который выполняет bsl код надо зарегистрировать в отладчике
+// если bsl-код выполняется потоком, про который отладчик не знает, отладка в нем работать не будет
+// в нашем случае у нас только один поток - main, то мы его и регистрируем.
+// При завершении потока имеет смысл выполнять так же engine.DebugController?.DetachFromThread();
+// но у нас только один поток, поэтому detach случится вместе с завершением приложения.
+engine.DebugController?.AttachToThread();
 
 // Есть 2 сценария применения, простой и сложный.
 // Простой - мы ничего не хотим, просто хотим вызвать какой-то скрипт и этот скрипт будет иметь тип Сценарий
@@ -64,7 +86,7 @@ Console.WriteLine("Press key to select a season. Press ESC to exit");
 ConsoleKey key;
 do
 {
-    key = Console.ReadKey().Key;
+    key = Console.ReadKey(true).Key;
     var season = receiver.GetSeason();
     Console.WriteLine($"Season '{season}' was chosen");
 
